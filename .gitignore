@@ -29,7 +29,7 @@ lerna-debug.log*
 # Caches
 .vite/
 .vite-temp/
-.turbo/
+.turbo/    
 .cache/
 .eslintcache
 

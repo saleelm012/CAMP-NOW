@@ -1,0 +1,138 @@
+
+const User = require('../models/User');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+
+
+const registerUser = async (req, res) => {
+    try {
+
+        const { name, email, password, phone } = req.body;
+
+        // Check required fields
+        if (!name || !email || !password || !phone) {
+            return res.status(400).json({
+                message: 'All fields are required'
+            });
+        }
+
+        // Normalize email
+        const normalizedEmail = email.trim().toLowerCase();
+
+        // Check existing user
+        const existingUser = await User.findOne({
+            $or: [
+                { email: normalizedEmail },
+                { phone: phone.trim() }
+            ]
+        });
+
+        if (existingUser) {
+            return res.status(409).json({
+                message: 'Email or phone already exists'
+            });
+        }
+
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Create user
+        const user = await User.create({
+            name,
+            email: normalizedEmail,
+            password: hashedPassword,
+            phone: phone.trim()
+        });
+
+        return res.status(201).json({
+            message: 'Registration successful',
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                phone: user.phone,
+                role: user.role
+            }
+        });
+
+    } catch (error) {
+
+        if (error.code === 11000) {
+            return res.status(409).json({
+                message: 'Email or phone already exists'
+            });
+        }
+
+        console.error(error);
+
+        return res.status(500).json({
+            message: 'Internal server error'
+        });
+    }
+};
+
+ const loginUser = async (req,res) => {
+    try {
+         
+        const {email,password} = req.body;
+
+        if (!email || !password) {
+        return  res.status(400).json({
+                message : 'email and password are required'
+            })
+        };
+
+        const normalizedEmail = email.trim().toLowerCase();
+
+        const user = await User.findOne({
+            email : normalizedEmail
+        });
+
+        if (!user) {
+            return res.status(401).json({
+                message : 'Invalid email or password'
+            });
+        }
+
+        const isPasswordValid = await bcrypt.compare(
+            password,
+            user.password
+        );
+
+        if (!isPasswordValid){
+          return  res.status(401).json({
+                message : 'invalid email or password'
+            });
+        }
+
+        const token = jwt.sign(
+            {id : user._id},
+            process.env.JWT_SECRET,
+            {expiresIn : '1d'}
+        );
+
+      return  res.status(200).json({
+            message : 'login successfull',
+            token,
+            user : {
+                id : user._id,
+                name : user.name,
+                email : user.email,
+                phone : user.phone,
+                role : user.role
+
+            }
+
+        });
+
+    }
+    catch (error) {
+          console.log(error)
+
+          return res.status(500).json({
+            message : "internel server error"
+          })
+    }
+ }
+
+module.exports = { registerUser,loginUser };

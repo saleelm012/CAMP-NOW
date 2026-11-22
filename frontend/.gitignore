@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Production
+dist/
+dist-ssr/
+*.local
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Caches
+.vite/
+.vite-temp/
+.eslintcache

@@ -1,20 +1,12 @@
+import api from '../axios/axios';
 
-const API_URL = import.meta.env.VITE_API_URL;
-
+// Register User
 export const registerUser = async (userData) => {
-    const response = await fetch(`${API_URL}/register`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(userData)
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-        throw new Error(data.message || 'Registration failed');
+    try {
+        const response = await api.post('/auth/register', userData);
+        return response.data;
+    } catch (error) {
+        const message = error.response?.data?.message || error.message || 'Registration failed';
+        throw new Error(message, { cause: error });
     }
-
-    return data;
 };

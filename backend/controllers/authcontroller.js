@@ -1,11 +1,11 @@
-
-const User = require('../models/User');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-
+import User from '../models/User.js';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
 const registerUser = async (req, res) => {
     try {
+
+        // console.log('third route');
 
         const { name, email, password, phone } = req.body;
 
@@ -41,7 +41,7 @@ const registerUser = async (req, res) => {
             name,
             email: normalizedEmail,
             password: hashedPassword,
-            phone: phone.trim()
+            phone: phone.trim()     
         });
 
         return res.status(201).json({
@@ -56,7 +56,6 @@ const registerUser = async (req, res) => {
         });
 
     } catch (error) {
-
         if (error.code === 11000) {
             return res.status(409).json({
                 message: 'Email or phone already exists'
@@ -71,26 +70,25 @@ const registerUser = async (req, res) => {
     }
 };
 
- const loginUser = async (req,res) => {
+const loginUser = async (req, res) => {
     try {
-         
-        const {email,password} = req.body;
+        const { email, password } = req.body;
 
         if (!email || !password) {
-        return  res.status(400).json({
-                message : 'email and password are required'
-            })
-        };
+            return res.status(400).json({
+                message: 'email and password are required'
+            });
+        }
 
         const normalizedEmail = email.trim().toLowerCase();
 
         const user = await User.findOne({
-            email : normalizedEmail
+            email: normalizedEmail
         });
 
         if (!user) {
             return res.status(401).json({
-                message : 'Invalid email or password'
+                message: 'Invalid email or password'
             });
         }
 
@@ -99,40 +97,37 @@ const registerUser = async (req, res) => {
             user.password
         );
 
-        if (!isPasswordValid){
-          return  res.status(401).json({
-                message : 'invalid email or password'
+        if (!isPasswordValid) {
+            return res.status(401).json({
+                message: 'invalid email or password'
             });
         }
 
         const token = jwt.sign(
-            {id : user._id},
+            { id: user._id },
             process.env.JWT_SECRET,
-            {expiresIn : '1d'}
+            { expiresIn: '1d' }
         );
 
-      return  res.status(200).json({
-            message : 'login successfull',
+        return res.status(200).json({
+            message: 'login successfull',
             token,
-            user : {
-                id : user._id,
-                name : user.name,
-                email : user.email,
-                phone : user.phone,
-                role : user.role
-
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                phone: user.phone,
+                role: user.role
             }
-
         });
 
-    }
-    catch (error) {
-          console.log(error)
+    } catch (error) {
+        console.log(error);
 
-          return res.status(500).json({
-            message : "internel server error"
-          })
+        return res.status(500).json({
+            message: "internel server error"
+        });
     }
- }
+};
 
-module.exports = { registerUser,loginUser };
+export { registerUser, loginUser };

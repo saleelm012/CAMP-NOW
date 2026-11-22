@@ -1,8 +1,9 @@
-require('dotenv').config();
+import dotenv from 'dotenv';
+dotenv.config();
 
-const connectDB = require('./config/db');
-const User = require('./models/User');
-const bcrypt = require('bcrypt');
+import connectDB from './config/db.js';
+import User from './models/User.js';
+import bcrypt from 'bcrypt';
 
 const testUser = async () => {
     try {
@@ -28,4 +29,4 @@ const testUser = async () => {
     }
 };
 
-testUser(); 
+testUser();

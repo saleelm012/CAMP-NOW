@@ -1,12 +1,48 @@
 import { useState } from 'react';
 import AuthLayout from '../components/AuthLayout';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { loginUser } from '../../../services/authService';
+
 
 function Login() {
 
     const [showPassword, setShowPassword] = useState(false);
 
-    return (
+    const [email, setEmail] = useState('');
+const [password, setPassword] = useState('');
+
+const [loading, setLoading] = useState(false);
+const [error, setError] = useState('');
+
+    
+const handleLogin = async (e) => {
+    e.preventDefault();
+
+    setError('');
+
+    if (!email.trim() || !password) {
+        setError('Email and password are required');
+        return;
+    }
+
+    try {
+        setLoading(true);
+
+        const response = await loginUser(
+            email.trim().toLowerCase(),
+            password
+        );
+
+        console.log('Login successful:', response.user);
+
+    } catch (err) {
+        setError(err.message);
+    } finally {
+        setLoading(false);
+    }
+};
+
+return (
         <AuthLayout>
             <div className="w-full max-w-lg mx-auto">
 
@@ -19,8 +55,7 @@ function Login() {
                     Login to your Football Store account.
                 </p>
 
-                <form className="space-y-4 sm:space-y-5">
-
+                <form onSubmit={handleLogin} className="space-y-4 sm:space-y-5">
                     {/* Email */}
                     <div className="flex items-center gap-3 sm:gap-5">
                         <label className="w-24 sm:w-28 shrink-0 text-sm sm:text-base font-bold text-neutral-900">
@@ -33,6 +68,8 @@ function Login() {
                             <input
                                 type="email"
                                 placeholder="Enter your email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
                                 className="w-full h-11 sm:h-12 pl-12 pr-4 bg-white border border-neutral-200 rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 outline-none transition-all duration-200 hover:border-neutral-300 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900"
                             />
                         </div>
@@ -51,6 +88,8 @@ function Login() {
                             <input
                                 type={showPassword ? 'text' : 'password'}
                                 placeholder="Enter your password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
                                 className="w-full h-11 sm:h-12 pl-12 pr-12 bg-white border border-neutral-200 rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 outline-none transition-all duration-200 hover:border-neutral-300 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900"
                             />
 
@@ -79,12 +118,21 @@ function Login() {
 
                     {/* Action Buttons */}
                     <div className="pt-2 space-y-3">
+
+                           {/* Login Error Message */}
+    {error && (
+        <p role="alert" className="text-red-600 text-sm">
+            {error}
+        </p>
+        
+    )}
                         <button
-                            type="button"
-                            className="w-full h-12 bg-[#141414] text-white rounded-lg text-sm sm:text-base font-bold cursor-pointer transition-colors duration-200 hover:bg-neutral-800 shadow-sm"
-                        >
-                            Login
-                        </button>
+    type="submit"
+    disabled={loading}
+    className="w-full h-12 bg-[#141414] text-white rounded-lg text-sm sm:text-base font-bold cursor-pointer transition-colors duration-200 hover:bg-neutral-800 shadow-sm disabled:opacity-60"
+>
+    {loading ? 'Logging in...' : 'Login'}
+</button>
 
                         <button
                             type="button"

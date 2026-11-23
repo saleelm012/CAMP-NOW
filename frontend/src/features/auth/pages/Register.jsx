@@ -1,9 +1,12 @@
+import { useNavigate } from 'react-router-dom';
 import AuthLayout from "../components/AuthLayout";
 import { useState } from "react";
 import { User, Mail, Phone, Lock, Eye, EyeOff } from "lucide-react";
 import { registerUser } from "../../../services/authService";
 
 function Register() {
+    const navigate = useNavigate();
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -47,17 +50,15 @@ function Register() {
         password: formData.password,
       };
 
-      const response = await registerUser(userData);
+      
+const response = await registerUser(userData);
 
-      setMessage(response.message || "Registration successful!");
+navigate('/verify-otp', {
+    state: {
+        email: response.email || formData.email.trim().toLowerCase()
+    }
+});
 
-      setFormData({
-        name: "",
-        email: "",
-        phone: "",
-        password: "",
-        confirmPassword: "",
-      });
     } catch (err) {
       setError(err.message);
     } finally {

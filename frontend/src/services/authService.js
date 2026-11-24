@@ -60,8 +60,12 @@ export const loginUser = async (email, password) => {
         return response.data;
 
     } catch (error) {
-        throw new Error(
-            error.response?.data?.message || 'Login failed'
-        );
-    }
-};
+    console.error('Login API Error:', error);
+
+    throw new Error(
+        error.response?.data?.message ||
+        error.message ||
+        'Login failed'
+    );
+  }
+};  

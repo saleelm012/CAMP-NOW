@@ -2,9 +2,13 @@ import { useState } from 'react';
 import AuthLayout from '../components/AuthLayout';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { loginUser } from '../../../services/authService';
+import { useNavigate } from 'react-router-dom';
+
 
 
 function Login() {
+
+    const navigate = useNavigate();
 
     const [showPassword, setShowPassword] = useState(false);
 
@@ -14,11 +18,18 @@ const [password, setPassword] = useState('');
 const [loading, setLoading] = useState(false);
 const [error, setError] = useState('');
 
+const [success, setSuccess] = useState('');
+
+const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+
+
     
 const handleLogin = async (e) => {
     e.preventDefault();
 
     setError('');
+    setSuccess('');
 
     if (!email.trim() || !password) {
         setError('Email and password are required');
@@ -34,6 +45,15 @@ const handleLogin = async (e) => {
         );
 
         console.log('Login successful:', response.user);
+        console.log('Navigating to home...');
+        setSuccess(response.message || 'Login successful!');
+
+        setIsLoggedIn(true);
+setEmail('');
+setPassword('');
+
+navigate('/home', { replace: true });
+
 
     } catch (err) {
         setError(err.message);
@@ -124,14 +144,25 @@ return (
         <p role="alert" className="text-red-600 text-sm">
             {error}
         </p>
-        
+
     )}
+
+    {success && (
+    <p
+        role="status"
+        className="text-green-700 bg-green-50 border border-green-200 px-4 py-3 rounded-lg text-sm font-medium"
+    >
+        {success}
+    </p>
+)}
+
                         <button
     type="submit"
-    disabled={loading}
+    disabled={loading || isLoggedIn}
     className="w-full h-12 bg-[#141414] text-white rounded-lg text-sm sm:text-base font-bold cursor-pointer transition-colors duration-200 hover:bg-neutral-800 shadow-sm disabled:opacity-60"
 >
-    {loading ? 'Logging in...' : 'Login'}
+{loading ? 'Logging in...' : isLoggedIn ? 'Logged In' : 'Login'}
+
 </button>
 
                         <button

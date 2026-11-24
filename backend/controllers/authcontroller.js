@@ -422,9 +422,16 @@ const loginUser = async (req, res) => {
             { expiresIn: '1d' }
         );
 
+        res.cookie('accessToken', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 24 * 60 * 60 * 1000,
+    path: '/'
+});
+
         return res.status(200).json({
             message: 'login successfull',
-            token,
             user: {
                 id: user._id,
                 name: user.name,

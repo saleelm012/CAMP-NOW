@@ -28,6 +28,10 @@ const userSchema = new mongoose.Schema({
         unique: true,
         trim: true
     },
+    profileImage: {
+    type: String,
+    default: null
+},
     isActive: {
         type: Boolean,
         default: true
@@ -35,7 +39,48 @@ const userSchema = new mongoose.Schema({
     isEmailVerified: {
     type: Boolean,
     default: false
-}
+    
+},resetOtpHash: {
+    type: String,
+    select: false
+},
+resetOtpExpires: {
+    type: Date
+},
+resetOtpAttempts: {
+    type: Number,
+    default: 0
+},
+resetTokenHash: {
+    type: String,
+    select: false
+},
+resetTokenExpires: {
+    type: Date
+}, 
+tokenVersion: {
+    type: Number,
+    default: 0
+},
+pendingEmail: {
+    type: String,
+    lowercase: true,
+    trim: true
+},
+emailChangeOtpHash: {
+    type: String,
+    select: false
+},
+emailChangeOtpExpires: {
+    type: Date
+},
+emailChangeOtpAttempts: {
+    type: Number,
+    default: 0
+},
+emailChangeOtpLastSentAt: {
+    type: Date
+},
 }, {
     timestamps: true
 });

@@ -25,6 +25,13 @@ const protect = async (req, res, next) => {
             });
         }
 
+        // Check token version
+        if (decoded.tokenVersion !== (user.tokenVersion ?? 0)) {
+            return res.status(401).json({
+                message: 'Session expired. Please login again.'
+            });
+        }
+
         req.user = user;
 
         next();

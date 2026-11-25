@@ -2,14 +2,18 @@ import { useState } from 'react';
 import AuthLayout from '../components/AuthLayout';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { loginUser } from '../../../services/authService';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate,Link } from 'react-router-dom';
+
+import NavigationButton from '../../../components/NavigationButton';
 
 
 
 function Login() {
 
     const navigate = useNavigate();
+    
 
+    
     const [showPassword, setShowPassword] = useState(false);
 
     const [email, setEmail] = useState('');
@@ -131,9 +135,13 @@ return (
                             <span>Remember me</span>
                         </label>
 
-                        <a href="#" className="text-neutral-700 hover:text-neutral-900 font-semibold no-underline hover:underline">
-                            Forgot Password?
-                        </a>
+
+ <NavigationButton
+    to="/forgot-password"
+    className="text-neutral-700 hover:text-neutral-900 font-semibold no-underline hover:underline"
+>
+    Forgot Password?
+</NavigationButton>
                     </div>
 
                     {/* Action Buttons */}

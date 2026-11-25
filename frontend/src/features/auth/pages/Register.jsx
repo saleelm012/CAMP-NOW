@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { replace, useNavigate } from 'react-router-dom';
 import AuthLayout from "../components/AuthLayout";
 import { useState } from "react";
 import { User, Mail, Phone, Lock, Eye, EyeOff } from "lucide-react";
@@ -54,6 +54,7 @@ function Register() {
 const response = await registerUser(userData);
 
 navigate('/verify-otp', {
+  replace:true,
     state: {
         email: response.email || formData.email.trim().toLowerCase()
     }

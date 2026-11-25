@@ -5,6 +5,7 @@ import cors from 'cors';
 import connectDB from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import cookieParser from 'cookie-parser';
+import addressRoutes from './routes/addressRoutes.js';
 
 import path from 'node:path';
 import multer from 'multer';
@@ -26,6 +27,7 @@ app.use(
 
 // console.log('first server')
 app.use('/api/auth', authRoutes);
+app.use('/api/addresses', addressRoutes);
 
 app.get('/', (req, res) => {
     console.log('fourth route');

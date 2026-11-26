@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Address from '../models/Address.js';
 
 const addAddress = async (req, res) => {
@@ -256,50 +257,60 @@ const updateAddress = async (req, res) => {
 
 const deleteAddress = async (req, res) => {
 
+    const { addressId } = req.params;
+
+    if (!/^[a-fA-F0-9]{24}$/.test(addressId)) {
+        return res.status(400).json({
+            message: 'Invalid address ID'
+        });
+    }
+
+    let session;
+
     try {
 
-        const { addressId } = req.params;
+        session = await mongoose.startSession();
 
-        if (!/^[a-fA-F0-9]{24}$/.test(addressId)) {
-            return res.status(400).json({
-                message: 'Invalid address ID'
-            });
-        }
+        await session.withTransaction(async () => {
 
-        const address = await Address.findOneAndDelete({
-            _id: addressId,
-            userId: req.user._id
-        });
+            const address = await Address.findOneAndDelete(
+                {
+                    _id: addressId,
+                    userId: req.user._id
+                },
+                { session }
+            );
 
-        if (!address) {
-            return res.status(404).json({
-                message: 'Address not found'
-            });
-        }
-
-        if (address.isDefault) {
-
-            const existingDefault = await Address.exists({
-                userId: req.user._id,
-                isDefault: true
-            });
-
-            if (!existingDefault) {
-
-                await Address.findOneAndUpdate(
-                    {
-                        userId: req.user._id
-                    },
-                    {
-                        $set: { isDefault: true }
-                    },
-                    {
-                        sort: { createdAt: -1 },
-                        runValidators: true
-                    }
-                );
+            if (!address) {
+                throw new Error('ADDRESS_NOT_FOUND');
             }
-        }
+
+            if (address.isDefault) {
+
+                const existingDefault = await Address.exists({
+                    userId: req.user._id,
+                    isDefault: true
+                }).session(session);
+
+                if (!existingDefault) {
+
+                    await Address.findOneAndUpdate(
+                        {
+                            userId: req.user._id
+                        },
+                        {
+                            $set: { isDefault: true }
+                        },
+                        {
+                            sort: { createdAt: -1 },
+                            runValidators: true,
+                            session
+                        }
+                    );
+                }
+            }
+
+        });
 
         return res.status(200).json({
             message: 'Address deleted successfully'
@@ -309,79 +320,11 @@ const deleteAddress = async (req, res) => {
 
         console.error(error);
 
-        return res.status(500).json({
-            message: 'Internal server error'
-        });
-    }
-};
-
-const setDefaultAddress = async (req, res) => {
-
-    try {
-
-        const { addressId } = req.params;
-
-        if (!/^[a-fA-F0-9]{24}$/.test(addressId)) {
-            return res.status(400).json({
-                message: 'Invalid address ID'
-            });
-        }
-
-        const address = await Address.findOne({
-            _id: addressId,
-            userId: req.user._id
-        });
-
-        if (!address) {
+        if (error.message === 'ADDRESS_NOT_FOUND') {
             return res.status(404).json({
                 message: 'Address not found'
             });
         }
-
-        if (address.isDefault) {
-            return res.status(200).json({
-                message: 'Address is already default'
-            });
-        }
-
-        await Address.updateMany(
-            {
-                userId: req.user._id,
-                isDefault: true
-            },
-            {
-                $set: { isDefault: false }
-            }
-        );
-
-        const updatedAddress = await Address.findOneAndUpdate(
-            {
-                _id: addressId,
-                userId: req.user._id
-            },
-            {
-                $set: { isDefault: true }
-            },
-            {
-                returnDocument: 'after',
-                runValidators: true
-            }
-        );
-
-        if (!updatedAddress) {
-            return res.status(404).json({
-                message: 'Address not found'
-            });
-        }
-
-        return res.status(200).json({
-            message: 'Default address updated successfully',
-            address: updatedAddress
-        });
-
-    } catch (error) {
-
-        console.error(error);
 
         if (error.code === 11000) {
             return res.status(409).json({
@@ -392,9 +335,113 @@ const setDefaultAddress = async (req, res) => {
         return res.status(500).json({
             message: 'Internal server error'
         });
+
+    } finally {
+
+        if (session) {
+            await session.endSession();
+        }
     }
 };
 
+const setDefaultAddress = async (req, res) => {
+
+    const { addressId } = req.params;
+
+    if (!/^[a-fA-F0-9]{24}$/.test(addressId)) {
+        return res.status(400).json({
+            message: 'Invalid address ID'
+        });
+    }
+
+    let session;
+
+    try {
+
+        session = await mongoose.startSession();
+
+        let updatedAddress;
+
+        await session.withTransaction(async () => {
+
+            const address = await Address.findOne({
+                _id: addressId,
+                userId: req.user._id
+            }).session(session);
+
+            if (!address) {
+                throw new Error('ADDRESS_NOT_FOUND');
+            }
+
+            if (address.isDefault) {
+                updatedAddress = address;
+                return;
+            }
+
+            await Address.updateMany(
+                {
+                    userId: req.user._id,
+                    isDefault: true
+                },
+                {
+                    $set: { isDefault: false }
+                },
+                { session }
+            );
+
+            updatedAddress = await Address.findOneAndUpdate(
+                {
+                    _id: addressId,
+                    userId: req.user._id
+                },
+                {
+                    $set: { isDefault: true }
+                },
+                {
+                    returnDocument: 'after',
+                    runValidators: true,
+                    session
+                }
+            );
+
+            if (!updatedAddress) {
+                throw new Error('ADDRESS_NOT_FOUND');
+            }
+
+        });
+
+        return res.status(200).json({
+            message: 'Default address updated successfully',
+            address: updatedAddress
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        if (error.message === 'ADDRESS_NOT_FOUND') {
+            return res.status(404).json({
+                message: 'Address not found'
+            });
+        }
+
+        if (error.code === 11000) {
+            return res.status(409).json({
+                message: 'Address conflict. Please try again.'
+            });
+        }
+
+        return res.status(500).json({
+            message: 'Internal server error'
+        });
+
+    } finally {
+
+        if (session) {
+            await session.endSession();
+        }
+    }
+};
 export {
     addAddress,
     getAddresses,

@@ -17,24 +17,45 @@ import VerifyEmailChangeOtp from "./features/profile/pages/VerifyEmailChangeOtp"
 import Addresses from "./features/profile/pages/Addresses";
 import AddAddress from "./features/profile/pages/AddAddress";
 import EditAddress from "./features/profile/pages/EditAddress";
+import PublicRoute from "./features/auth/components/PublicRoute";
+import AdminLogin from "./features/admin/pages/AdminLogin";
+import AdminDashboard from "./features/admin/pages/AdminDashboard";
+import AdminProtectedRoute from "./features/admin/components/AdminProtectedRoute";
+import AdminPublicRoute from "./features/admin/components/AdminPublicRoute";
+import AdminLayout from "./features/admin/layouts/AdminLayout";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+
+        {/* Customer Public Routes */}
+
+        <Route element={<PublicRoute />}>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+        </Route>
+
         <Route path="/verify-otp" element={<VerifyOtp />} />
+
+
+        {/* Customer Protected Routes */}
 
         <Route element={<ProtectedRoute />}>
           <Route element={<MainLayout />}>
+
             <Route path="/home" element={<Home />} />
+
             <Route path="/profile" element={<Profile />} />
+
             <Route path="/profile/edit" element={<EditProfile />} />
 
             <Route path="/profile/addresses" element={<Addresses />} />
 
-            <Route path="/profile/addresses/add" element={<AddAddress />} />
+            <Route
+              path="/profile/addresses/add"
+              element={<AddAddress />}
+            />
 
             <Route
               path="/profile/addresses/edit/:addressId"
@@ -46,18 +67,65 @@ function App() {
               element={<ChangePassword />}
             />
 
-            <Route path="/profile/change-email" element={<ChangeEmail />} />
+            <Route
+              path="/profile/change-email"
+              element={<ChangeEmail />}
+            />
 
             <Route
               path="/profile/verify-email-change"
               element={<VerifyEmailChangeOtp />}
             />
+
           </Route>
         </Route>
 
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/verify-reset-otp" element={<VerifyResetOtp />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
+
+        {/* Forgot Password Routes */}
+
+        <Route
+          path="/forgot-password"
+          element={<ForgotPassword />}
+        />
+
+        <Route
+          path="/verify-reset-otp"
+          element={<VerifyResetOtp />}
+        />
+
+        <Route
+          path="/reset-password"
+          element={<ResetPassword />}
+        />
+
+
+        {/* Admin Public Routes */}
+
+        <Route element={<AdminPublicRoute />}>
+
+          <Route
+            path="/admin/login"
+            element={<AdminLogin />}
+          />
+
+        </Route>
+
+
+        {/* Admin Protected Routes */}
+
+        <Route element={<AdminProtectedRoute />}>
+
+          <Route element={<AdminLayout />}>
+
+            <Route
+              path="/admin/dashboard"
+              element={<AdminDashboard />}
+            />
+
+          </Route>
+
+        </Route>
+
       </Routes>
     </BrowserRouter>
   );

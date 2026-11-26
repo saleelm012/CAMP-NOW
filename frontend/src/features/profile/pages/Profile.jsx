@@ -267,13 +267,15 @@ function Profile() {
                     <span>Verified</span>
                   </span>
 
-                  <button
-                    type="button"
-                    onClick={() => navigate("/profile/change-email")}
-                    className="text-xs font-semibold text-[#8B1D2C] hover:underline cursor-pointer"
-                  >
-                    Change Email
-                  </button>
+                  {user.authProvider !== "google" && (
+                    <button
+                      type="button"
+                      onClick={() => navigate("/profile/change-email")}
+                      className="text-xs font-semibold text-[#8B1D2C] hover:underline cursor-pointer"
+                    >
+                      Change Email
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -294,35 +296,31 @@ function Profile() {
                 </div>
               </div>
               {/* Saved Addresses Tile */}
-<div className="flex items-center justify-between p-4 rounded-xl bg-neutral-50 border border-neutral-100 transition-all duration-200 hover:bg-neutral-100/60">
+              <div className="flex items-center justify-between p-4 rounded-xl bg-neutral-50 border border-neutral-100 transition-all duration-200 hover:bg-neutral-100/60">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-white border border-neutral-200/80 flex items-center justify-center text-neutral-700 shadow-2xs shrink-0">
+                    <MapPin size={18} strokeWidth={2} />
+                  </div>
 
-  <div className="flex items-center gap-4">
+                  <div>
+                    <p className="text-xs font-medium text-neutral-400">
+                      Delivery Addresses
+                    </p>
 
-    <div className="w-10 h-10 rounded-lg bg-white border border-neutral-200/80 flex items-center justify-center text-neutral-700 shadow-2xs shrink-0">
-      <MapPin size={18} strokeWidth={2} />
-    </div>
+                    <p className="text-sm sm:text-base font-bold text-neutral-900">
+                      Saved Addresses
+                    </p>
+                  </div>
+                </div>
 
-    <div>
-      <p className="text-xs font-medium text-neutral-400">
-        Delivery Addresses
-      </p>
-
-      <p className="text-sm sm:text-base font-bold text-neutral-900">
-        Saved Addresses
-      </p>
-    </div>
-
-  </div>
-
-  <button
-    type="button"
-    onClick={() => navigate("/profile/addresses")}
-    className="text-xs font-semibold text-[#8B1D2C] hover:underline cursor-pointer"
-  >
-    Manage Addresses
-  </button>
-
-</div>
+                <button
+                  type="button"
+                  onClick={() => navigate("/profile/addresses")}
+                  className="text-xs font-semibold text-[#8B1D2C] hover:underline cursor-pointer"
+                >
+                  Manage Addresses
+                </button>
+              </div>
             </div>
           </div>
         </div>

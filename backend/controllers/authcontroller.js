@@ -375,17 +375,27 @@ const loginUser = async (req, res) => {
       email: normalizedEmail,
     });
 
-    if (!user) {
+    if (
+      !user ||
+      user.role !== "user" ||
+      user.authProvider === "google" ||
+      !user.password
+    ) {
       return res.status(401).json({
         message: "Invalid email or password",
       });
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
-
     if (!isPasswordValid) {
       return res.status(401).json({
         message: "invalid email or password",
+      });
+    }
+
+    if (!user.isActive) {
+      return res.status(403).json({
+        message: "Your account has been blocked. Please contact support.",
       });
     }
 
@@ -395,7 +405,10 @@ const loginUser = async (req, res) => {
         tokenVersion: user.tokenVersion ?? 0,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "1d" },
+      {
+        expiresIn: "1d",
+        audience: "camp-nou-customer",
+      },
     );
 
     res.cookie("accessToken", token, {
@@ -427,7 +440,7 @@ const loginUser = async (req, res) => {
 
 const forgotPassword = async (req, res) => {
   try {
-    const { email } = req.body;
+   const { email } = req.body || {};
 
     // Validate email
     if (typeof email !== "string" || !email.trim()) {
@@ -443,8 +456,10 @@ const forgotPassword = async (req, res) => {
     // Find registered user
     const user = await User.findOne({
       email: normalizedEmail,
+      role: "user",
       isActive: true,
       isEmailVerified: true,
+      authProvider: { $ne: "google" },
     });
 
     if (!user) {
@@ -461,6 +476,10 @@ const forgotPassword = async (req, res) => {
     const result = await User.updateOne(
       {
         _id: user._id,
+        role: "user",
+        isActive: true,
+        isEmailVerified: true,
+        authProvider: { $ne: "google" },
         $or: [
           { resetOtpExpires: null },
           {
@@ -520,8 +539,10 @@ const verifyResetOtp = async (req, res) => {
     // Find user
     const user = await User.findOne({
       email: normalizedEmail,
+      role: "user",
       isActive: true,
       isEmailVerified: true,
+      authProvider: { $ne: "google" },
     }).select("+resetOtpHash");
 
     if (!user || !user.resetOtpHash) {
@@ -549,7 +570,10 @@ const verifyResetOtp = async (req, res) => {
 
     const otpFilter = {
       _id: user._id,
+      role: "user",
       isActive: true,
+      isEmailVerified: true,
+      authProvider: { $ne: "google" },
       resetOtpHash: user.resetOtpHash,
       resetOtpExpires: { $gt: new Date() },
       resetOtpAttempts: { $lt: 5 },
@@ -640,10 +664,12 @@ const resetPassword = async (req, res) => {
     // Find user with valid reset token
     const user = await User.findOne({
       email: normalizedEmail,
+      role: "user",
       resetTokenHash,
       resetTokenExpires: { $gt: new Date() },
       isActive: true,
       isEmailVerified: true,
+      authProvider: { $ne: "google" },
     });
 
     if (!user) {
@@ -659,10 +685,12 @@ const resetPassword = async (req, res) => {
     const result = await User.updateOne(
       {
         _id: user._id,
+        role: "user",
         resetTokenHash,
         resetTokenExpires: { $gt: new Date() },
         isActive: true,
         isEmailVerified: true,
+        authProvider: { $ne: "google" },
       },
       {
         $set: {
@@ -846,7 +874,7 @@ const uploadProfileImage = async (req, res) => {
         profileImage: imagePath,
       },
       {
-        returnDocument: 'after',
+        returnDocument: "after",
         runValidators: true,
       },
     ).select("name email phone profileImage");
@@ -947,6 +975,12 @@ const changePassword = async (req, res) => {
       });
     }
 
+    if (user.authProvider === "google" || !user.password) {
+      return res.status(403).json({
+        message: "Password change is not available for Google accounts",
+      });
+    }
+
     // Verify current password
     const isPasswordValid = await bcrypt.compare(
       currentPassword,
@@ -1036,6 +1070,12 @@ const requestEmailChangeOtp = async (req, res) => {
     if (!user || !user.isActive) {
       return res.status(401).json({
         message: "Unauthorized",
+      });
+    }
+
+    if (user.authProvider === "google" || !user.password) {
+      return res.status(403).json({
+        message: "Email change is not available for Google accounts",
       });
     }
 
@@ -1140,6 +1180,7 @@ const verifyEmailChangeOtp = async (req, res) => {
     if (
       !user ||
       !user.isActive ||
+      user.authProvider === "google" ||
       !user.pendingEmail ||
       !user.emailChangeOtpHash
     ) {
@@ -1147,7 +1188,6 @@ const verifyEmailChangeOtp = async (req, res) => {
         message: "Invalid email change request",
       });
     }
-
     // Check OTP expiry
     if (
       !user.emailChangeOtpExpires ||
@@ -1174,6 +1214,7 @@ const verifyEmailChangeOtp = async (req, res) => {
     const otpFilter = {
       _id: user._id,
       isActive: true,
+      authProvider: { $ne: "google" },
       tokenVersion: user.tokenVersion,
       email: user.email,
       pendingEmail: user.pendingEmail,

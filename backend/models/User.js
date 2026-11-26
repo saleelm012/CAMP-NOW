@@ -1,10 +1,12 @@
 import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema({
+
     name: {
         type: String,
         required: true
     },
+
     email: {
         type: String,
         required: true,
@@ -12,75 +14,107 @@ const userSchema = new mongoose.Schema({
         lowercase: true,
         trim: true
     },
+
+    authProvider: {
+        type: String,
+        enum: ['local', 'google'],
+        default: 'local'
+    },
+
+    googleId: {
+        type: String,
+        unique: true,
+        sparse: true
+    },
+
     password: {
         type: String,
-        required: true, 
+        required: function () {
+            return this.authProvider === 'local';
+        },
         minlength: 8
     },
+
     role: {
         type: String,
         enum: ["user", "admin"],
         default: "user"
     },
+
     phone: {
         type: String,
         required: true,
         unique: true,
         trim: true
     },
+
     profileImage: {
-    type: String,
-    default: null
-},
+        type: String,
+        default: null
+    },
+
     isActive: {
         type: Boolean,
         default: true
     },
+
     isEmailVerified: {
-    type: Boolean,
-    default: false
-    
-},resetOtpHash: {
-    type: String,
-    select: false
-},
-resetOtpExpires: {
-    type: Date
-},
-resetOtpAttempts: {
-    type: Number,
-    default: 0
-},
-resetTokenHash: {
-    type: String,
-    select: false
-},
-resetTokenExpires: {
-    type: Date
-}, 
-tokenVersion: {
-    type: Number,
-    default: 0
-},
-pendingEmail: {
-    type: String,
-    lowercase: true,
-    trim: true
-},
-emailChangeOtpHash: {
-    type: String,
-    select: false
-},
-emailChangeOtpExpires: {
-    type: Date
-},
-emailChangeOtpAttempts: {
-    type: Number,
-    default: 0
-},
-emailChangeOtpLastSentAt: {
-    type: Date
-},
+        type: Boolean,
+        default: false
+    },
+
+    resetOtpHash: {
+        type: String,
+        select: false
+    },
+
+    resetOtpExpires: {
+        type: Date
+    },
+
+    resetOtpAttempts: {
+        type: Number,
+        default: 0
+    },
+
+    resetTokenHash: {
+        type: String,
+        select: false
+    },
+
+    resetTokenExpires: {
+        type: Date
+    },
+
+    tokenVersion: {
+        type: Number,
+        default: 0
+    },
+
+    pendingEmail: {
+        type: String,
+        lowercase: true,
+        trim: true
+    },
+
+    emailChangeOtpHash: {
+        type: String,
+        select: false
+    },
+
+    emailChangeOtpExpires: {
+        type: Date
+    },
+
+    emailChangeOtpAttempts: {
+        type: Number,
+        default: 0
+    },
+
+    emailChangeOtpLastSentAt: {
+        type: Date
+    }
+
 }, {
     timestamps: true
 });

@@ -13,6 +13,8 @@ function VerifyEmailChangeOtp() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [otpError, setOtpError] = useState("");
+
   const inputRefs = useRef([]);
 
   // Auto-focus the first box on render if newEmail exists
@@ -23,6 +25,9 @@ function VerifyEmailChangeOtp() {
   }, [newEmail]);
 
   const handleDigitChange = (index, value) => {
+    setOtpError("");
+    setError("");
+
     const cleanVal = value.replace(/\D/g, "");
 
     // If user pastes or types multiple digits
@@ -52,6 +57,9 @@ function VerifyEmailChangeOtp() {
 
   const handleKeyDown = (index, e) => {
     if (e.key === "Backspace") {
+      setOtpError("");
+      setError("");
+
       if (!otp[index] && index > 0) {
         // If current box is already empty, jump to previous box
         const newOtp = [...otp];
@@ -78,6 +86,8 @@ function VerifyEmailChangeOtp() {
       .replace(/\D/g, "")
       .slice(0, 6);
     if (pasteData) {
+      setOtpError("");
+      setError("");
       const newOtp = pasteData.split("");
       while (newOtp.length < 6) newOtp.push("");
       setOtp(newOtp);
@@ -87,12 +97,24 @@ function VerifyEmailChangeOtp() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (loading || !newEmail) return;
+
     setError("");
+    setOtpError("");
 
     const otpString = otp.join("");
 
+    // Empty OTP validation
+    if (!otpString) {
+      setOtpError("OTP is required");
+      inputRefs.current[0]?.focus();
+      return;
+    }
+
+    // OTP format validation
     if (!/^\d{6}$/.test(otpString)) {
-      setError("Enter a valid 6-digit OTP");
+      setOtpError("Enter a valid 6-digit OTP");
       return;
     }
 
@@ -170,7 +192,7 @@ function VerifyEmailChangeOtp() {
 
         {/* Form Card */}
         <div className="bg-white border border-neutral-200/90 rounded-2xl shadow-xs p-6 sm:p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6" noValidate>
             <div>
               <label className="block text-sm sm:text-base font-bold text-neutral-900 mb-3">
                 Verification Code
@@ -184,7 +206,9 @@ function VerifyEmailChangeOtp() {
                 {otp.map((digit, idx) => (
                   <input
                     key={idx}
-                    ref={(el) => (inputRefs.current[idx] = el)}
+                    ref={(el) => {
+                      inputRefs.current[idx] = el;
+                    }}
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]*"
@@ -193,11 +217,26 @@ function VerifyEmailChangeOtp() {
                     onChange={(e) => handleDigitChange(idx, e.target.value)}
                     onKeyDown={(e) => handleKeyDown(idx, e)}
                     autoComplete={idx === 0 ? "one-time-code" : "off"}
-                    className="w-11 h-13 sm:w-14 sm:h-16 text-center text-xl sm:text-2xl font-bold bg-white border border-neutral-200 rounded-lg sm:rounded-xl text-neutral-900 outline-none transition-all duration-200 hover:border-neutral-300 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 shadow-xs"
                     aria-label={`Digit ${idx + 1}`}
+                    aria-invalid={!!otpError}
+                    aria-describedby={otpError ? "otp-error" : undefined}
+                    className={`w-11 h-13 sm:w-14 sm:h-16 text-center text-xl sm:text-2xl font-bold bg-white border rounded-lg sm:rounded-xl text-neutral-900 outline-none transition-all duration-200 shadow-xs ${
+                      otpError
+                        ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/10"
+                        : "border-neutral-200 hover:border-neutral-300 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10"
+                    }`}
                   />
                 ))}
               </div>
+              {otpError && (
+                <p
+                  id="otp-error"
+                  role="alert"
+                  className="text-red-600 text-xs mt-2"
+                >
+                  {otpError}
+                </p>
+              )}
             </div>
 
             {/* Error Alert */}

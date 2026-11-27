@@ -18,21 +18,63 @@ const registerUser = async (req, res) => {
   try {
     // console.log('third route');
 
-    const { name, email, password, phone } = req.body;
+    const { name, email, password, phone } = req.body || {};
 
-    // Check required fields
-    if (!name || !email || !password || !phone) {
+    // Required fields and data type validation
+    if (
+      typeof name !== "string" ||
+      typeof email !== "string" ||
+      typeof password !== "string" ||
+      typeof phone !== "string" ||
+      !name.trim() ||
+      !email.trim() ||
+      !password.trim() ||
+      !phone.trim()
+    ) {
       return res.status(400).json({
-        message: "All fields are required",
+        message: "All fields are required and must be valid",
       });
     }
 
-    // Normalize email
+    // Normalize input values
+    const normalizedName = name.trim();
     const normalizedEmail = email.trim().toLowerCase();
+    const normalizedPhone = phone.trim();
+
+    // Name validation
+    if (normalizedName.length < 2 || normalizedName.length > 100) {
+      return res.status(400).json({
+        message: "Name must be between 2 and 100 characters",
+      });
+    }
+
+    // Email validation
+    if (
+      normalizedEmail.length > 254 ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+    ) {
+      return res.status(400).json({
+        message: "Enter a valid email address",
+      });
+    }
+
+    // Phone number validation
+    if (!/^[6-9]\d{9}$/.test(normalizedPhone)) {
+      return res.status(400).json({
+        message: "Enter a valid 10-digit phone number",
+      });
+    }
+
+    // Password validation
+    if (password.length < 8 || Buffer.byteLength(password, "utf8") > 72) {
+      return res.status(400).json({
+        message: "Password must be at least 8 characters and at most 72 bytes",
+      });
+    }
 
     // Check existing user
     const existingUser = await User.findOne({
-      $or: [{ email: normalizedEmail }, { phone: phone.trim() }],
+      $or: [{ email: normalizedEmail }, { phone: normalizedPhone }],
     });
 
     if (existingUser) {
@@ -67,9 +109,9 @@ const registerUser = async (req, res) => {
     if (!pendingUser) {
       // New pending registration
       await PendingRegistration.create({
-        name,
+        name: normalizedName,
         email: normalizedEmail,
-        phone: phone.trim(),
+        phone: normalizedPhone,
         passwordHash: hashedPassword,
         otpHash: hashedOtp,
         otpExpiresAt,
@@ -89,8 +131,8 @@ const registerUser = async (req, res) => {
         },
         {
           $set: {
-            name,
-            phone: phone.trim(),
+            name: normalizedName,
+            phone: normalizedPhone,
             passwordHash: hashedPassword,
             otpHash: hashedOtp,
             otpExpiresAt,
@@ -134,16 +176,35 @@ const verifyRegistrationOtp = async (req, res) => {
   let session;
 
   try {
-    const { email, otp } = req.body;
+    const { email, otp } = req.body || {};
 
-    if (!email || !otp) {
+    // Email validation
+    if (typeof email !== "string" || !email.trim()) {
       return res.status(400).json({
-        message: "Email and OTP are required",
+        message: "Valid email is required",
       });
     }
 
     const normalizedEmail = email.trim().toLowerCase();
 
+    if (
+      normalizedEmail.length > 254 ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+    ) {
+      return res.status(400).json({
+        message: "Enter a valid email address",
+      });
+    }
+
+    // OTP validation
+    if (
+      (typeof otp !== "string" && typeof otp !== "number") ||
+      !/^\d{6}$/.test(String(otp))
+    ) {
+      return res.status(400).json({
+        message: "Enter a valid 6-digit OTP",
+      });
+    }
     const pendingUser = await PendingRegistration.findOne({
       email: normalizedEmail,
     });
@@ -283,15 +344,27 @@ const verifyRegistrationOtp = async (req, res) => {
 
 const resendRegistrationOtp = async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email } = req.body || {};
 
-    if (!email || typeof email !== "string") {
+    // Required field and data type validation
+    if (typeof email !== "string" || !email.trim()) {
       return res.status(400).json({
         message: "Valid email is required",
       });
     }
 
+    // Normalize email
     const normalizedEmail = email.trim().toLowerCase();
+
+    // Email format validation
+    if (
+      normalizedEmail.length > 254 ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+    ) {
+      return res.status(400).json({
+        message: "Enter a valid email address",
+      });
+    }
 
     const pendingUser = await PendingRegistration.findOne({
       email: normalizedEmail,
@@ -361,15 +434,39 @@ const resendRegistrationOtp = async (req, res) => {
 
 const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password } = req.body || {};
 
-    if (!email || !password) {
+    // Required fields and data type validation
+    if (
+      typeof email !== "string" ||
+      typeof password !== "string" ||
+      !email.trim() ||
+      !password.trim()
+    ) {
       return res.status(400).json({
-        message: "email and password are required",
+        message: "Valid email and password are required",
       });
     }
 
+    // Normalize email
     const normalizedEmail = email.trim().toLowerCase();
+
+    // Email validation
+    if (
+      normalizedEmail.length > 254 ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+    ) {
+      return res.status(400).json({
+        message: "Enter a valid email address",
+      });
+    }
+
+    // Password byte length validation
+    if (Buffer.byteLength(password, "utf8") > 72) {
+      return res.status(400).json({
+        message: "Invalid password length",
+      });
+    }
 
     const user = await User.findOne({
       email: normalizedEmail,
@@ -440,16 +537,27 @@ const loginUser = async (req, res) => {
 
 const forgotPassword = async (req, res) => {
   try {
-   const { email } = req.body || {};
+    const { email } = req.body || {};
 
-    // Validate email
+    // Required field and data type validation
     if (typeof email !== "string" || !email.trim()) {
       return res.status(400).json({
         message: "Valid email is required",
       });
     }
 
+    // Normalize email
     const normalizedEmail = email.trim().toLowerCase();
+
+    // Email format validation
+    if (
+      normalizedEmail.length > 254 ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+    ) {
+      return res.status(400).json({
+        message: "Enter a valid email address",
+      });
+    }
 
     const message = "If the email is registered, an OTP will be sent.";
 
@@ -521,20 +629,35 @@ const forgotPassword = async (req, res) => {
 
 const verifyResetOtp = async (req, res) => {
   try {
-    const { email, otp } = req.body;
+    const { email, otp } = req.body || {};
 
-    // Validate inputs
-    if (
-      typeof email !== "string" ||
-      !email.trim() ||
-      !/^\d{6}$/.test(String(otp))
-    ) {
+    // Email validation
+    if (typeof email !== "string" || !email.trim()) {
       return res.status(400).json({
-        message: "Valid email and OTP are required",
+        message: "Valid email is required",
       });
     }
 
     const normalizedEmail = email.trim().toLowerCase();
+
+    if (
+      normalizedEmail.length > 254 ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+    ) {
+      return res.status(400).json({
+        message: "Enter a valid email address",
+      });
+    }
+
+    // OTP validation
+    if (
+      (typeof otp !== "string" && typeof otp !== "number") ||
+      !/^\d{6}$/.test(String(otp))
+    ) {
+      return res.status(400).json({
+        message: "Enter a valid 6-digit OTP",
+      });
+    }
 
     // Find user
     const user = await User.findOne({
@@ -631,29 +754,47 @@ const verifyResetOtp = async (req, res) => {
 
 const resetPassword = async (req, res) => {
   try {
-    const { email, resetToken, newPassword } = req.body;
+    const { email, resetToken, newPassword } = req.body || {};
 
-    // Validate inputs
-    if (
-      typeof email !== "string" ||
-      !email.trim() ||
-      typeof resetToken !== "string" ||
-      !/^[a-f0-9]{64}$/.test(resetToken) ||
-      typeof newPassword !== "string"
-    ) {
+    // Email validation
+    if (typeof email !== "string" || !email.trim()) {
       return res.status(400).json({
-        message: "Valid email, token and password are required",
-      });
-    }
-
-    // Password validation
-    if (newPassword.length < 8 || Buffer.byteLength(newPassword, "utf8") > 72) {
-      return res.status(400).json({
-        message: "Password must be at least 8 characters and at most 72 bytes",
+        message: "Valid email is required",
       });
     }
 
     const normalizedEmail = email.trim().toLowerCase();
+
+    if (
+      normalizedEmail.length > 254 ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+    ) {
+      return res.status(400).json({
+        message: "Enter a valid email address",
+      });
+    }
+
+    // Reset token validation
+    if (
+      typeof resetToken !== "string" ||
+      !/^[a-fA-F0-9]{64}$/.test(resetToken)
+    ) {
+      return res.status(400).json({
+        message: "Invalid reset token",
+      });
+    }
+
+    // New password validation
+    if (
+      typeof newPassword !== "string" ||
+      !newPassword.trim() ||
+      newPassword.length < 8 ||
+      Buffer.byteLength(newPassword, "utf8") > 72
+    ) {
+      return res.status(400).json({
+        message: "Password must be at least 8 characters and at most 72 bytes",
+      });
+    }
 
     // Hash received reset token
     const resetTokenHash = crypto
@@ -732,11 +873,10 @@ const resetPassword = async (req, res) => {
 
 const updateProfile = async (req, res) => {
   try {
-    const { name, phone } = req.body;
-
+    const { name, phone } = req.body || {};
     const userId = req.user._id;
 
-    // Required field validation
+    // Required fields and data type validation
     if (
       typeof name !== "string" ||
       typeof phone !== "string" ||
@@ -744,17 +884,25 @@ const updateProfile = async (req, res) => {
       !phone.trim()
     ) {
       return res.status(400).json({
-        message: "Name and phone number are required",
+        message: "Valid name and phone number are required",
       });
     }
 
+    // Normalize inputs
     const normalizedName = name.trim();
     const normalizedPhone = phone.trim();
+
+    // Name validation
+    if (normalizedName.length < 2 || normalizedName.length > 100) {
+      return res.status(400).json({
+        message: "Name must be between 2 and 100 characters",
+      });
+    }
 
     // Phone number validation
     if (!/^[6-9]\d{9}$/.test(normalizedPhone)) {
       return res.status(400).json({
-        message: "Enter a valid phone number",
+        message: "Enter a valid 10-digit phone number",
       });
     }
 
@@ -927,25 +1075,30 @@ const logoutUser = (req, res) => {
 
 const changePassword = async (req, res) => {
   try {
-    const { currentPassword, newPassword, confirmPassword } = req.body;
+    const { currentPassword, newPassword, confirmPassword } = req.body || {};
 
-    const userId = req.user._id;
-
-    // Required field validation
+    // Required fields and data type validation
     if (
       typeof currentPassword !== "string" ||
       typeof newPassword !== "string" ||
       typeof confirmPassword !== "string" ||
-      !currentPassword ||
-      !newPassword ||
-      !confirmPassword
+      !currentPassword.trim() ||
+      !newPassword.trim() ||
+      !confirmPassword.trim()
     ) {
       return res.status(400).json({
         message: "All password fields are required",
       });
     }
 
-    // New password length validation
+    // Current password byte length validation
+    if (Buffer.byteLength(currentPassword, "utf8") > 72) {
+      return res.status(400).json({
+        message: "Invalid current password",
+      });
+    }
+
+    // New password validation
     if (newPassword.length < 8 || Buffer.byteLength(newPassword, "utf8") > 72) {
       return res.status(400).json({
         message: "Password must be at least 8 characters and at most 72 bytes",
@@ -1050,19 +1203,39 @@ const changePassword = async (req, res) => {
 
 const requestEmailChangeOtp = async (req, res) => {
   try {
-    const { newEmail, currentPassword } = req.body;
+    const { newEmail, currentPassword } = req.body || {};
 
-    // Validate email
+    // Required fields and data type validation
     if (
       typeof newEmail !== "string" ||
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail.trim())
+      typeof currentPassword !== "string" ||
+      !newEmail.trim() ||
+      !currentPassword.trim()
     ) {
       return res.status(400).json({
-        message: "Valid email is required",
+        message: "Valid email and current password are required",
       });
     }
 
+    // Normalize email
     const normalizedEmail = newEmail.trim().toLowerCase();
+
+    // Email format validation
+    if (
+      normalizedEmail.length > 254 ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+    ) {
+      return res.status(400).json({
+        message: "Enter a valid email address",
+      });
+    }
+
+    // Current password validation
+    if (Buffer.byteLength(currentPassword, "utf8") > 72) {
+      return res.status(400).json({
+        message: "Invalid current password",
+      });
+    }
 
     // Find logged-in user
     const user = await User.findById(req.user._id).select("+password");
@@ -1163,12 +1336,15 @@ const requestEmailChangeOtp = async (req, res) => {
 
 const verifyEmailChangeOtp = async (req, res) => {
   try {
-    const { otp } = req.body;
+    const { otp } = req.body || {};
 
-    // Validate OTP
-    if (!/^\d{6}$/.test(String(otp))) {
+    // OTP validation
+    if (
+      (typeof otp !== "string" && typeof otp !== "number") ||
+      !/^\d{6}$/.test(String(otp))
+    ) {
       return res.status(400).json({
-        message: "Valid OTP is required",
+        message: "Enter a valid 6-digit OTP",
       });
     }
 

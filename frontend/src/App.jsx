@@ -23,12 +23,12 @@ import AdminDashboard from "./features/admin/pages/AdminDashboard";
 import AdminProtectedRoute from "./features/admin/components/AdminProtectedRoute";
 import AdminPublicRoute from "./features/admin/components/AdminPublicRoute";
 import AdminLayout from "./features/admin/layouts/AdminLayout";
+import AdminUsers from "./features/admin/pages/AdminUsers";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-
         {/* Customer Public Routes */}
 
         <Route element={<PublicRoute />}>
@@ -38,12 +38,10 @@ function App() {
 
         <Route path="/verify-otp" element={<VerifyOtp />} />
 
-
         {/* Customer Protected Routes */}
 
         <Route element={<ProtectedRoute />}>
           <Route element={<MainLayout />}>
-
             <Route path="/home" element={<Home />} />
 
             <Route path="/profile" element={<Profile />} />
@@ -52,10 +50,7 @@ function App() {
 
             <Route path="/profile/addresses" element={<Addresses />} />
 
-            <Route
-              path="/profile/addresses/add"
-              element={<AddAddress />}
-            />
+            <Route path="/profile/addresses/add" element={<AddAddress />} />
 
             <Route
               path="/profile/addresses/edit/:addressId"
@@ -67,65 +62,38 @@ function App() {
               element={<ChangePassword />}
             />
 
-            <Route
-              path="/profile/change-email"
-              element={<ChangeEmail />}
-            />
+            <Route path="/profile/change-email" element={<ChangeEmail />} />
 
             <Route
               path="/profile/verify-email-change"
               element={<VerifyEmailChangeOtp />}
             />
-
           </Route>
         </Route>
 
-
         {/* Forgot Password Routes */}
 
-        <Route
-          path="/forgot-password"
-          element={<ForgotPassword />}
-        />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
-        <Route
-          path="/verify-reset-otp"
-          element={<VerifyResetOtp />}
-        />
+        <Route path="/verify-reset-otp" element={<VerifyResetOtp />} />
 
-        <Route
-          path="/reset-password"
-          element={<ResetPassword />}
-        />
-
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* Admin Public Routes */}
 
         <Route element={<AdminPublicRoute />}>
-
-          <Route
-            path="/admin/login"
-            element={<AdminLogin />}
-          />
-
+          <Route path="/admin/login" element={<AdminLogin />} />
         </Route>
-
 
         {/* Admin Protected Routes */}
 
         <Route element={<AdminProtectedRoute />}>
-
           <Route element={<AdminLayout />}>
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
 
-            <Route
-              path="/admin/dashboard"
-              element={<AdminDashboard />}
-            />
-
+            <Route path="/admin/users" element={<AdminUsers />} />
           </Route>
-
         </Route>
-
       </Routes>
     </BrowserRouter>
   );

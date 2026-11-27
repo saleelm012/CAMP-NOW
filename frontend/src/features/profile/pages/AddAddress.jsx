@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, Phone, MapPin, Building } from 'lucide-react';
 import api from '../../../axios/axios';
 
@@ -21,6 +21,7 @@ function AddAddress() {
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState({});
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -29,27 +30,85 @@ function AddAddress() {
             ...prev,
             [name]: value
         }));
+
+        setFieldErrors(prev => ({
+            ...prev,
+            [name]: ''
+        }));
+
+        setError('');
+    };
+
+    const validateForm = () => {
+        const errors = {};
+
+        // Full Name validation
+        if (!formData.fullName.trim()) {
+            errors.fullName = 'Full name is required';
+        }
+
+        // Phone Number validation
+        if (!formData.phone.trim()) {
+            errors.phone = 'Phone number is required';
+        } else if (!/^[6-9]\d{9}$/.test(formData.phone.trim())) {
+            errors.phone = 'Enter a valid 10-digit phone number';
+        }
+
+        // Address validation
+        if (!formData.addressLine1.trim()) {
+            errors.addressLine1 = 'Address is required';
+        }
+
+        // City validation
+        if (!formData.city.trim()) {
+            errors.city = 'City is required';
+        }
+
+        // State validation
+        if (!formData.state.trim()) {
+            errors.state = 'State is required';
+        }
+
+        // Pincode validation
+        if (!formData.pincode.trim()) {
+            errors.pincode = 'Pincode is required';
+        } else if (!/^[1-9]\d{5}$/.test(formData.pincode.trim())) {
+            errors.pincode = 'Enter a valid 6-digit pincode';
+        }
+
+        // Address Type validation
+        if (!['Home', 'Work', 'Other'].includes(formData.addressType)) {
+            errors.addressType = 'Select a valid address type';
+        }
+
+        setFieldErrors(errors);
+
+        return Object.keys(errors).length === 0;
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        if (loading) return;
+
         setError('');
 
-        if (!/^[6-9]\d{9}$/.test(formData.phone.trim())) {
-            setError('Enter a valid phone number');
-            return;
-        }
-
-        if (!/^[1-9]\d{5}$/.test(formData.pincode.trim())) {
-            setError('Enter a valid pincode');
-            return;
-        }
+        if (!validateForm()) return;
 
         try {
             setLoading(true);
 
-            await api.post('/addresses', formData);
+            await api.post('/addresses', {
+                ...formData,
+                fullName: formData.fullName.trim(),
+                phone: formData.phone.trim(),
+                addressLine1: formData.addressLine1.trim(),
+                addressLine2: formData.addressLine2.trim(),
+                landmark: formData.landmark.trim(),
+                city: formData.city.trim(),
+                state: formData.state.trim(),
+                pincode: formData.pincode.trim()
+            });
 
             navigate('/profile/addresses');
 
@@ -70,13 +129,14 @@ function AddAddress() {
 
                 {/* Back Link */}
                 <div className="mb-4">
-                    <Link
-                        to="/profile/addresses"
-                        className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-500 hover:text-neutral-900 transition-colors"
+                    <button
+                        type="button"
+                        onClick={() => navigate('/profile/addresses')}
+                        className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-500 hover:text-neutral-900 transition-colors cursor-pointer"
                     >
                         <ArrowLeft size={16} />
                         <span>Back to Addresses</span>
-                    </Link>
+                    </button>
                 </div>
 
                 {/* Header */}
@@ -92,10 +152,16 @@ function AddAddress() {
                 {/* Form Card */}
                 <div className="bg-white border border-neutral-200/90 rounded-2xl shadow-xs p-6 sm:p-8">
 
-                    <form onSubmit={handleSubmit} className="space-y-5">
+                    <form
+                        onSubmit={handleSubmit}
+                        className="space-y-5"
+                        noValidate
+                    >
 
-                        {/* Contact Info (2 columns) */}
+                        {/* Contact Info */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+
+                            {/* Full Name */}
                             <div>
                                 <label
                                     htmlFor="fullName"
@@ -108,6 +174,7 @@ function AddAddress() {
                                     <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none flex items-center justify-center">
                                         <User size={18} strokeWidth={1.8} />
                                     </div>
+
                                     <input
                                         id="fullName"
                                         type="text"
@@ -115,12 +182,29 @@ function AddAddress() {
                                         placeholder="Full Name"
                                         value={formData.fullName}
                                         onChange={handleChange}
+                                        autoComplete="name"
                                         required
-                                        className="w-full h-11 sm:h-12 pl-11 pr-4 bg-white border border-neutral-200 rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 outline-none transition-all duration-200 hover:border-neutral-300 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 shadow-xs"
+                                        aria-invalid={!!fieldErrors.fullName}
+                                        aria-describedby={fieldErrors.fullName ? 'fullName-error' : undefined}
+                                        className={`w-full h-11 sm:h-12 pl-11 pr-4 bg-white border rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 outline-none transition-all duration-200 shadow-xs ${
+                                            fieldErrors.fullName
+                                                ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500'
+                                                : 'border-neutral-200 hover:border-neutral-300 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900'
+                                        }`}
                                     />
                                 </div>
+
+                                {fieldErrors.fullName && (
+                                    <p
+                                        id="fullName-error"
+                                        className="text-red-600 text-xs mt-1.5"
+                                    >
+                                        {fieldErrors.fullName}
+                                    </p>
+                                )}
                             </div>
 
+                            {/* Phone Number */}
                             <div>
                                 <label
                                     htmlFor="phone"
@@ -133,6 +217,7 @@ function AddAddress() {
                                     <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none flex items-center justify-center">
                                         <Phone size={18} strokeWidth={1.8} />
                                     </div>
+
                                     <input
                                         id="phone"
                                         type="tel"
@@ -140,12 +225,29 @@ function AddAddress() {
                                         placeholder="10-digit mobile number"
                                         value={formData.phone}
                                         onChange={handleChange}
+                                        autoComplete="tel-national"
                                         maxLength={10}
                                         required
-                                        className="w-full h-11 sm:h-12 pl-11 pr-4 bg-white border border-neutral-200 rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 outline-none transition-all duration-200 hover:border-neutral-300 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 shadow-xs"
+                                        aria-invalid={!!fieldErrors.phone}
+                                        aria-describedby={fieldErrors.phone ? 'phone-error' : undefined}
+                                        className={`w-full h-11 sm:h-12 pl-11 pr-4 bg-white border rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 outline-none transition-all duration-200 shadow-xs ${
+                                            fieldErrors.phone
+                                                ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500'
+                                                : 'border-neutral-200 hover:border-neutral-300 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900'
+                                        }`}
                                     />
                                 </div>
+
+                                {fieldErrors.phone && (
+                                    <p
+                                        id="phone-error"
+                                        className="text-red-600 text-xs mt-1.5"
+                                    >
+                                        {fieldErrors.phone}
+                                    </p>
+                                )}
                             </div>
+
                         </div>
 
                         {/* Street Address Line 1 */}
@@ -161,6 +263,7 @@ function AddAddress() {
                                 <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none flex items-center justify-center">
                                     <Building size={18} strokeWidth={1.8} />
                                 </div>
+
                                 <input
                                     id="addressLine1"
                                     type="text"
@@ -168,10 +271,26 @@ function AddAddress() {
                                     placeholder="Flat, House no., Building, Company, Apartment"
                                     value={formData.addressLine1}
                                     onChange={handleChange}
+                                    autoComplete="address-line1"
                                     required
-                                    className="w-full h-11 sm:h-12 pl-11 pr-4 bg-white border border-neutral-200 rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 outline-none transition-all duration-200 hover:border-neutral-300 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 shadow-xs"
+                                    aria-invalid={!!fieldErrors.addressLine1}
+                                    aria-describedby={fieldErrors.addressLine1 ? 'addressLine1-error' : undefined}
+                                    className={`w-full h-11 sm:h-12 pl-11 pr-4 bg-white border rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 outline-none transition-all duration-200 shadow-xs ${
+                                        fieldErrors.addressLine1
+                                            ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500'
+                                            : 'border-neutral-200 hover:border-neutral-300 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900'
+                                    }`}
                                 />
                             </div>
+
+                            {fieldErrors.addressLine1 && (
+                                <p
+                                    id="addressLine1-error"
+                                    className="text-red-600 text-xs mt-1.5"
+                                >
+                                    {fieldErrors.addressLine1}
+                                </p>
+                            )}
                         </div>
 
                         {/* Street Address Line 2 */}
@@ -187,6 +306,7 @@ function AddAddress() {
                                 <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none flex items-center justify-center">
                                     <MapPin size={18} strokeWidth={1.8} />
                                 </div>
+
                                 <input
                                     id="addressLine2"
                                     type="text"
@@ -194,6 +314,7 @@ function AddAddress() {
                                     placeholder="Area, Street, Sector, Village"
                                     value={formData.addressLine2}
                                     onChange={handleChange}
+                                    autoComplete="address-line2"
                                     className="w-full h-11 sm:h-12 pl-11 pr-4 bg-white border border-neutral-200 rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 outline-none transition-all duration-200 hover:border-neutral-300 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 shadow-xs"
                                 />
                             </div>
@@ -219,8 +340,10 @@ function AddAddress() {
                             />
                         </div>
 
-                        {/* City, State, Pincode (3 columns on desktop) */}
+                        {/* City, State, Pincode */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+                            {/* City */}
                             <div>
                                 <label
                                     htmlFor="city"
@@ -236,11 +359,28 @@ function AddAddress() {
                                     placeholder="Town / City"
                                     value={formData.city}
                                     onChange={handleChange}
+                                    autoComplete="address-level2"
                                     required
-                                    className="w-full h-11 sm:h-12 px-4 bg-white border border-neutral-200 rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 outline-none transition-all duration-200 hover:border-neutral-300 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 shadow-xs"
+                                    aria-invalid={!!fieldErrors.city}
+                                    aria-describedby={fieldErrors.city ? 'city-error' : undefined}
+                                    className={`w-full h-11 sm:h-12 px-4 bg-white border rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 outline-none transition-all duration-200 shadow-xs ${
+                                        fieldErrors.city
+                                            ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500'
+                                            : 'border-neutral-200 hover:border-neutral-300 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900'
+                                    }`}
                                 />
+
+                                {fieldErrors.city && (
+                                    <p
+                                        id="city-error"
+                                        className="text-red-600 text-xs mt-1.5"
+                                    >
+                                        {fieldErrors.city}
+                                    </p>
+                                )}
                             </div>
 
+                            {/* State */}
                             <div>
                                 <label
                                     htmlFor="state"
@@ -256,11 +396,28 @@ function AddAddress() {
                                     placeholder="State"
                                     value={formData.state}
                                     onChange={handleChange}
+                                    autoComplete="address-level1"
                                     required
-                                    className="w-full h-11 sm:h-12 px-4 bg-white border border-neutral-200 rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 outline-none transition-all duration-200 hover:border-neutral-300 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 shadow-xs"
+                                    aria-invalid={!!fieldErrors.state}
+                                    aria-describedby={fieldErrors.state ? 'state-error' : undefined}
+                                    className={`w-full h-11 sm:h-12 px-4 bg-white border rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 outline-none transition-all duration-200 shadow-xs ${
+                                        fieldErrors.state
+                                            ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500'
+                                            : 'border-neutral-200 hover:border-neutral-300 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900'
+                                    }`}
                                 />
+
+                                {fieldErrors.state && (
+                                    <p
+                                        id="state-error"
+                                        className="text-red-600 text-xs mt-1.5"
+                                    >
+                                        {fieldErrors.state}
+                                    </p>
+                                )}
                             </div>
 
+                            {/* Pincode */}
                             <div>
                                 <label
                                     htmlFor="pincode"
@@ -272,15 +429,33 @@ function AddAddress() {
                                 <input
                                     id="pincode"
                                     type="text"
+                                    inputMode="numeric"
                                     name="pincode"
                                     placeholder="6-digit pincode"
                                     value={formData.pincode}
                                     onChange={handleChange}
+                                    autoComplete="postal-code"
                                     maxLength={6}
                                     required
-                                    className="w-full h-11 sm:h-12 px-4 bg-white border border-neutral-200 rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 outline-none transition-all duration-200 hover:border-neutral-300 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 shadow-xs"
+                                    aria-invalid={!!fieldErrors.pincode}
+                                    aria-describedby={fieldErrors.pincode ? 'pincode-error' : undefined}
+                                    className={`w-full h-11 sm:h-12 px-4 bg-white border rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 outline-none transition-all duration-200 shadow-xs ${
+                                        fieldErrors.pincode
+                                            ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500'
+                                            : 'border-neutral-200 hover:border-neutral-300 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900'
+                                    }`}
                                 />
+
+                                {fieldErrors.pincode && (
+                                    <p
+                                        id="pincode-error"
+                                        className="text-red-600 text-xs mt-1.5"
+                                    >
+                                        {fieldErrors.pincode}
+                                    </p>
+                                )}
                             </div>
+
                         </div>
 
                         {/* Address Type */}
@@ -297,12 +472,35 @@ function AddAddress() {
                                 name="addressType"
                                 value={formData.addressType}
                                 onChange={handleChange}
-                                className="w-full h-11 sm:h-12 px-4 bg-white border border-neutral-200 rounded-lg text-sm text-neutral-900 outline-none transition-all duration-200 hover:border-neutral-300 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 shadow-xs cursor-pointer"
+                                aria-invalid={!!fieldErrors.addressType}
+                                aria-describedby={fieldErrors.addressType ? 'addressType-error' : undefined}
+                                className={`w-full h-11 sm:h-12 px-4 bg-white border rounded-lg text-sm text-neutral-900 outline-none transition-all duration-200 shadow-xs cursor-pointer ${
+                                    fieldErrors.addressType
+                                        ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500'
+                                        : 'border-neutral-200 hover:border-neutral-300 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900'
+                                }`}
                             >
-                                <option value="Home">Home (All-day delivery)</option>
-                                <option value="Work">Work (Delivery between 10 AM - 5 PM)</option>
-                                <option value="Other">Other</option>
+                                <option value="Home">
+                                    Home (All-day delivery)
+                                </option>
+
+                                <option value="Work">
+                                    Work (Delivery between 10 AM - 5 PM)
+                                </option>
+
+                                <option value="Other">
+                                    Other
+                                </option>
                             </select>
+
+                            {fieldErrors.addressType && (
+                                <p
+                                    id="addressType-error"
+                                    className="text-red-600 text-xs mt-1.5"
+                                >
+                                    {fieldErrors.addressType}
+                                </p>
+                            )}
                         </div>
 
                         {/* Error Alert */}
@@ -317,6 +515,7 @@ function AddAddress() {
 
                         {/* Actions */}
                         <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-4 pt-2">
+
                             <button
                                 type="button"
                                 onClick={() => navigate('/profile/addresses')}
@@ -333,6 +532,7 @@ function AddAddress() {
                             >
                                 {loading ? 'Saving...' : 'Save Address'}
                             </button>
+
                         </div>
 
                     </form>

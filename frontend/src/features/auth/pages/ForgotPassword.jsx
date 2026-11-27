@@ -1,117 +1,143 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Mail } from 'lucide-react';
-import AuthLayout from '../components/AuthLayout';
-import api from '../../../axios/axios';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Mail } from "lucide-react";
+import AuthLayout from "../components/AuthLayout";
+import api from "../../../axios/axios";
 
 function ForgotPassword() {
+  const navigate = useNavigate();
 
-    const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-    const [email, setEmail] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
+  const [emailError, setEmailError] = useState("");
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-        setError('');
+    if (loading) return;
 
-        if (!email.trim()) {
-            setError('Email is required');
-            return;
-        }
+    setError("");
+    setEmailError("");
 
-        try {
-            setLoading(true);
+    const normalizedEmail = email.trim().toLowerCase();
 
-            const normalizedEmail = email.trim().toLowerCase();
+    // Empty email validation
+    if (!normalizedEmail) {
+      setEmailError("Email is required");
+      return;
+    }
 
-            await api.post('/auth/forgot-password', {
-                email: normalizedEmail
-            });
+    // Email format validation
+    if (
+      normalizedEmail.length > 254 ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+    ) {
+      setEmailError("Please enter a valid email address");
+      return;
+    }
 
-            navigate('/verify-reset-otp', {
-                state: { email: normalizedEmail }
-            });
+    try {
+      setLoading(true);
 
-        } catch (err) {
-            setError(
-                err.response?.data?.message ||
-                'Something went wrong'
-            );
-        } finally {
-            setLoading(false);
-        }
-    };
+      await api.post("/auth/forgot-password", {
+        email: normalizedEmail,
+      });
 
-    return (
-        <AuthLayout>
-            <div className="w-full max-w-lg mx-auto">
+      navigate("/verify-reset-otp", {
+        state: { email: normalizedEmail },
+      });
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          "Something went wrong. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
-                <h1 className="text-3xl sm:text-4xl font-extrabold mb-2">
-                    Forgot <span className="text-[#8B1D2C]">
-                        Password?
-                    </span>
-                </h1>
+  return (
+    <AuthLayout>
+      <div className="w-full max-w-lg mx-auto">
+        <h1 className="text-3xl sm:text-4xl font-extrabold mb-2">
+          Forgot <span className="text-[#8B1D2C]">Password?</span>
+        </h1>
 
-                <p className="text-neutral-500 text-sm sm:text-base mb-8">
-                    Enter your registered email address to receive
-                    a password reset OTP.
-                </p>
+        <p className="text-neutral-500 text-sm sm:text-base mb-8">
+          Enter your registered email address to receive a password reset OTP.
+        </p>
+        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+          <label htmlFor="email" className="text-sm font-bold">
+            Email Address
+          </label>
 
-                <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="relative mt-2">
+            <Mail
+              size={19}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400"
+            />
 
-                    <label className="text-sm font-bold">
-                        Email Address
-                    </label>
+            <input
+              id="email"
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              autoComplete="email"
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setEmailError("");
+                setError("");
+              }}
+              aria-invalid={!!emailError}
+              aria-describedby={emailError ? "email-error" : undefined}
+              className={`w-full h-12 pl-12 pr-4 bg-white border rounded-lg text-sm outline-none ${
+                emailError
+                  ? "border-red-500 focus:border-red-500"
+                  : "border-neutral-200 focus:border-neutral-900"
+              }`}
+              required
+            />
+          </div>
 
-                    <div className="relative mt-2">
+          {emailError && (
+            <p
+              id="email-error"
+              role="alert"
+              className="text-red-600 text-xs mt-1.5"
+            >
+              {emailError}
+            </p>
+          )}
 
-                        <Mail
-                            size={19}
-                            className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400"
-                        />
+          {error && (
+            <p role="alert" className="text-red-600 text-sm">
+              {error}
+            </p>
+          )}
 
-                        <input
-                            type="email"
-                            placeholder="Enter your email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full h-12 pl-12 pr-4 bg-white border border-neutral-200 rounded-lg text-sm outline-none focus:border-neutral-900"
-                            required
-                        />
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full h-12 bg-[#141414] text-white rounded-lg font-bold cursor-pointer hover:bg-neutral-800 disabled:opacity-60"
+          >
+            {loading ? "Sending OTP..." : "Send OTP"}
+          </button>
+        </form>
 
-                    </div>
-
-                    {error && (
-                        <p role="alert" className="text-red-600 text-sm">
-                            {error}
-                        </p>
-                    )}
-
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full h-12 bg-[#141414] text-white rounded-lg font-bold cursor-pointer hover:bg-neutral-800 disabled:opacity-60"
-                    >
-                        {loading ? 'Sending OTP...' : 'Send OTP'}
-                    </button>
-
-                </form>
-
-                <p className="text-center text-sm mt-6">
-                    <Link
-                        to="/login"
-                        className="text-[#8B1D2C] font-bold hover:underline"
-                    >
-                        Back to Login
-                    </Link>
-                </p>
-
-            </div>
-        </AuthLayout>
-    );
+        <p className="text-center text-sm mt-6">
+          <button
+            type="button"
+            onClick={() => navigate("/login")}
+            className="text-[#8B1D2C] font-bold hover:underline cursor-pointer"
+          >
+            Back to Login
+          </button>
+        </p>
+      </div>
+    </AuthLayout>
+  );
 }
 
 export default ForgotPassword;

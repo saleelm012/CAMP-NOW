@@ -20,6 +20,8 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [fieldErrors, setFieldErrors] = useState({});
+
   const [success, setSuccess] = useState("");
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -29,14 +31,43 @@ function Login() {
   const [phone, setPhone] = useState("");
   const [googleLoading, setGoogleLoading] = useState(false);
 
+  const validateLoginForm = () => {
+    const errors = {};
+
+    // Email validation
+    if (!email.trim()) {
+      errors.email = "Email is required";
+    } else if (
+      email.trim().length > 254 ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+    ) {
+      errors.email = "Enter a valid email address";
+    }
+
+    // Password validation
+    if (!password.trim()) {
+      errors.password = "Password is required";
+    } else if (new TextEncoder().encode(password).length > 72) {
+      errors.password = "Password must not exceed 72 bytes";
+    }
+
+    setFieldErrors(errors);
+
+    return Object.keys(errors).length === 0;
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
+
+    if (loading || googleLoading || isLoggedIn || requiresPhone) {
+      return;
+    }
 
     setError("");
     setSuccess("");
 
-    if (!email.trim() || !password) {
-      setError("Email and password are required");
+    // Frontend validation
+    if (!validateLoginForm()) {
       return;
     }
 
@@ -45,8 +76,6 @@ function Login() {
 
       const response = await loginUser(email.trim().toLowerCase(), password);
 
-      console.log("Login successful:", response.user);
-      console.log("Navigating to home...");
       setSuccess(response.message || "Login successful!");
 
       setIsLoggedIn(true);
@@ -55,7 +84,7 @@ function Login() {
 
       navigate("/home", { replace: true });
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -75,7 +104,7 @@ function Login() {
         credential: credentialResponse.credential,
       });
 
-      console.log('Google response:', response.data);
+      console.log("Google response:", response.data);
 
       if (response.data.requiresPhone) {
         setGoogleCredential(credentialResponse.credential);
@@ -96,11 +125,24 @@ function Login() {
   };
 
   const handleGooglePhoneSubmit = async () => {
+    if (googleLoading || loading || isLoggedIn) return;
+
     setError("");
     setSuccess("");
+    setFieldErrors({});
+
+    // Phone validation
+    if (!phone.trim()) {
+      setFieldErrors({
+        phone: "Phone number is required",
+      });
+      return;
+    }
 
     if (!/^[6-9]\d{9}$/.test(phone.trim())) {
-      setError("Enter a valid phone number");
+      setFieldErrors({
+        phone: "Enter a valid 10-digit phone number",
+      });
       return;
     }
 
@@ -145,52 +187,120 @@ function Login() {
           Login to your Football Store account.
         </p>
 
-        <form onSubmit={handleLogin} className="space-y-4 sm:space-y-5">
+        <form
+          onSubmit={handleLogin}
+          noValidate
+          className="space-y-4 sm:space-y-5"
+        >
           {/* Email */}
-          <div className="flex items-center gap-3 sm:gap-5">
-            <label className="w-24 sm:w-28 shrink-0 text-sm sm:text-base font-bold text-neutral-900">
+          <div className="flex items-start gap-3 sm:gap-5">
+            <label
+              htmlFor="email"
+              className="w-24 sm:w-28 shrink-0 text-sm sm:text-base font-bold text-neutral-900 pt-3"
+            >
               Email
             </label>
-            <div className="relative flex-1">
-              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none flex items-center justify-center">
-                <Mail size={19} strokeWidth={1.8} />
+
+            <div className="flex-1 min-w-0">
+              <div className="relative">
+                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none flex items-center justify-center">
+                  <Mail size={19} strokeWidth={1.8} />
+                </div>
+
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="username"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+
+                    setFieldErrors((prev) => ({
+                      ...prev,
+                      email: "",
+                    }));
+
+                    setError("");
+                  }}
+                  required
+                  aria-invalid={!!fieldErrors.email}
+                  aria-describedby={
+                    fieldErrors.email ? "email-error" : undefined
+                  }
+                  className={`w-full h-11 sm:h-12 pl-12 pr-4 bg-white border rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 outline-none transition-all duration-200 ${
+                    fieldErrors.email
+                      ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                      : "border-neutral-200 hover:border-neutral-300 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900"
+                  }`}
+                />
               </div>
-              <input
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full h-11 sm:h-12 pl-12 pr-4 bg-white border border-neutral-200 rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 outline-none transition-all duration-200 hover:border-neutral-300 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900"
-              />
+
+              {fieldErrors.email && (
+                <p id="email-error" className="text-red-600 text-xs mt-1.5">
+                  {fieldErrors.email}
+                </p>
+              )}
             </div>
           </div>
-
           {/* Password */}
-          <div className="flex items-center gap-3 sm:gap-5">
-            <label className="w-24 sm:w-28 shrink-0 text-sm sm:text-base font-bold text-neutral-900">
+          <div className="flex items-start gap-3 sm:gap-5">
+            <label
+              htmlFor="password"
+              className="w-24 sm:w-28 shrink-0 text-sm sm:text-base font-bold text-neutral-900 pt-3"
+            >
               Password
             </label>
 
-            <div className="relative flex-1">
-              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none flex items-center justify-center">
-                <Lock size={19} strokeWidth={1.8} />
-              </div>
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full h-11 sm:h-12 pl-12 pr-12 bg-white border border-neutral-200 rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 outline-none transition-all duration-200 hover:border-neutral-300 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900"
-              />
+            <div className="flex-1 min-w-0">
+              <div className="relative">
+                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none flex items-center justify-center">
+                  <Lock size={19} strokeWidth={1.8} />
+                </div>
 
-              <button
-                type="button"
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700 cursor-pointer p-1 transition-colors"
-                onClick={() => setShowPassword(!showPassword)}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+
+                    setFieldErrors((prev) => ({
+                      ...prev,
+                      password: "",
+                    }));
+
+                    setError("");
+                  }}
+                  required
+                  aria-invalid={!!fieldErrors.password}
+                  aria-describedby={
+                    fieldErrors.password ? "password-error" : undefined
+                  }
+                  className={`w-full h-11 sm:h-12 pl-12 pr-12 bg-white border rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 outline-none transition-all duration-200 ${
+                    fieldErrors.password
+                      ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                      : "border-neutral-200 hover:border-neutral-300 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900"
+                  }`}
+                />
+
+                <button
+                  type="button"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700 cursor-pointer p-1 transition-colors"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+
+              {fieldErrors.password && (
+                <p id="password-error" className="text-red-600 text-xs mt-1.5">
+                  {fieldErrors.password}
+                </p>
+              )}
             </div>
           </div>
 
@@ -232,7 +342,7 @@ function Login() {
 
             <button
               type="submit"
-            disabled={loading || isLoggedIn || googleLoading || requiresPhone}
+              disabled={loading || isLoggedIn || googleLoading || requiresPhone}
               className="w-full h-12 bg-[#141414] text-white rounded-lg text-sm sm:text-base font-bold cursor-pointer transition-colors duration-200 hover:bg-neutral-800 shadow-sm disabled:opacity-60"
             >
               {loading ? "Logging in..." : isLoggedIn ? "Logged In" : "Login"}
@@ -257,24 +367,55 @@ function Login() {
                     Complete Your Account
                   </h3>
                   <p className="text-xs sm:text-sm text-neutral-500 mt-0.5">
-                    Enter your 10-digit mobile number to complete Google Sign-In.
+                    Enter your 10-digit mobile number to complete Google
+                    Sign-In.
                   </p>
                 </div>
 
-                <div className="relative">
-                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none flex items-center justify-center">
-                    <Phone size={18} strokeWidth={1.8} />
-                  </div>
-                  <input
-                    type="tel"
-                    placeholder="Enter 10-digit phone number"
-                    value={phone}
-                    maxLength={10}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full h-11 sm:h-12 pl-11 pr-4 bg-white border border-neutral-200 rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 outline-none transition-all duration-200 hover:border-neutral-300 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 shadow-xs"
-                  />
-                </div>
+                <div>
+                  <div className="relative">
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none flex items-center justify-center">
+                      <Phone size={18} strokeWidth={1.8} />
+                    </div>
 
+                    <input
+                      id="google-phone"
+                      type="tel"
+                      placeholder="Enter 10-digit phone number"
+                      value={phone}
+                      maxLength={10}
+                      aria-label="Phone number"
+                      aria-invalid={!!fieldErrors.phone}
+                      aria-describedby={
+                        fieldErrors.phone ? "google-phone-error" : undefined
+                      }
+                      onChange={(e) => {
+                        setPhone(e.target.value);
+
+                        setFieldErrors((prev) => ({
+                          ...prev,
+                          phone: "",
+                        }));
+
+                        setError("");
+                      }}
+                      className={`w-full h-11 sm:h-12 pl-11 pr-4 bg-white border rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 outline-none transition-all duration-200 shadow-xs ${
+                        fieldErrors.phone
+                          ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                          : "border-neutral-200 hover:border-neutral-300 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900"
+                      }`}
+                    />
+                  </div>
+
+                  {fieldErrors.phone && (
+                    <p
+                      id="google-phone-error"
+                      className="text-red-600 text-xs mt-1.5"
+                    >
+                      {fieldErrors.phone}
+                    </p>
+                  )}
+                </div>
                 <div className="flex flex-col-reverse sm:flex-row gap-2.5 pt-1">
                   <button
                     type="button"

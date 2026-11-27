@@ -12,26 +12,55 @@ function ChangeEmail() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [fieldErrors, setFieldErrors] = useState({});
+  const validateForm = () => {
+    const errors = {};
+
+    const normalizedEmail = newEmail.trim().toLowerCase();
+
+    // Email validation
+    if (!normalizedEmail) {
+      errors.newEmail = "New email is required";
+    } else if (normalizedEmail.length > 254) {
+      errors.newEmail = "Email must not exceed 254 characters";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      errors.newEmail = "Enter a valid email address";
+    }
+
+    // Current password validation
+    if (!currentPassword.trim()) {
+      errors.currentPassword = "Current password is required";
+    } else if (new TextEncoder().encode(currentPassword).length > 72) {
+      errors.currentPassword = "Password must not exceed 72 bytes";
+    }
+
+    setFieldErrors(errors);
+
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (loading) return;
+
     setError("");
 
-    if (!newEmail.trim() || !currentPassword) {
-      setError("All fields are required");
-      return;
-    }
+    if (!validateForm()) return;
+
+    const normalizedEmail = newEmail.trim().toLowerCase();
 
     try {
       setLoading(true);
 
       await api.post("/auth/change-email/request-otp", {
-        newEmail,
+        newEmail: normalizedEmail,
         currentPassword,
       });
 
       navigate("/profile/verify-email-change", {
         state: {
-          newEmail,
+          newEmail: normalizedEmail,
         },
       });
     } catch (error) {
@@ -67,7 +96,7 @@ function ChangeEmail() {
 
         {/* Form Card */}
         <div className="bg-white border border-neutral-200/90 rounded-2xl shadow-xs p-6 sm:p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6" noValidate>
             {/* New Email */}
             <div>
               <label
@@ -86,12 +115,36 @@ function ChangeEmail() {
                   id="newEmail"
                   type="email"
                   value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
+                  onChange={(e) => {
+                    setNewEmail(e.target.value);
+
+                    setFieldErrors((prev) => ({
+                      ...prev,
+                      newEmail: "",
+                    }));
+
+                    setError("");
+                  }}
                   placeholder="Enter your new email address"
+                  autoComplete="email"
                   required
-                  className="w-full h-11 sm:h-12 pl-12 pr-4 bg-white border border-neutral-200 rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 outline-none transition-all duration-200 hover:border-neutral-300 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 shadow-xs"
+                  aria-invalid={!!fieldErrors.newEmail}
+                  aria-describedby={
+                    fieldErrors.newEmail ? "newEmail-error" : undefined
+                  }
+                  className={`w-full h-11 sm:h-12 pl-12 pr-4 bg-white border rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 outline-none transition-all duration-200 shadow-xs ${
+                    fieldErrors.newEmail
+                      ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                      : "border-neutral-200 hover:border-neutral-300 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900"
+                  }`}
                 />
               </div>
+
+              {fieldErrors.newEmail && (
+                <p id="newEmail-error" className="text-red-600 text-xs mt-1.5">
+                  {fieldErrors.newEmail}
+                </p>
+              )}
             </div>
 
             {/* Current Password */}
@@ -112,12 +165,31 @@ function ChangeEmail() {
                   id="currentPassword"
                   type={showPassword ? "text" : "password"}
                   value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="Enter your current password"
-                  required
-                  className="w-full h-11 sm:h-12 pl-12 pr-12 bg-white border border-neutral-200 rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 outline-none transition-all duration-200 hover:border-neutral-300 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 shadow-xs"
-                />
+                  onChange={(e) => {
+                    setCurrentPassword(e.target.value);
 
+                    setFieldErrors((prev) => ({
+                      ...prev,
+                      currentPassword: "",
+                    }));
+
+                    setError("");
+                  }}
+                  placeholder="Enter your current password"
+                  autoComplete="current-password"
+                  required
+                  aria-invalid={!!fieldErrors.currentPassword}
+                  aria-describedby={
+                    fieldErrors.currentPassword
+                      ? "currentPassword-error"
+                      : "currentPassword-help"
+                  }
+                  className={`w-full h-11 sm:h-12 pl-12 pr-12 bg-white border rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 outline-none transition-all duration-200 shadow-xs ${
+                    fieldErrors.currentPassword
+                      ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                      : "border-neutral-200 hover:border-neutral-300 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900"
+                  }`}
+                />
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
@@ -128,9 +200,21 @@ function ChangeEmail() {
                 </button>
               </div>
 
-              <p className="text-xs text-neutral-400 mt-1.5">
-                Required to verify your identity before updating your email.
-              </p>
+              {fieldErrors.currentPassword ? (
+                <p
+                  id="currentPassword-error"
+                  className="text-red-600 text-xs mt-1.5"
+                >
+                  {fieldErrors.currentPassword}
+                </p>
+              ) : (
+                <p
+                  id="currentPassword-help"
+                  className="text-xs text-neutral-400 mt-1.5"
+                >
+                  Required to verify your identity before updating your email.
+                </p>
+              )}
             </div>
 
             {/* Error Alert */}
